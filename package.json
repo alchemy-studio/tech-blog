@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "pnpm clean:build && pnpm clean:deps",
+    "clean:build": "rm -rf .next",
+    "clean:deps": "rm -rf node_modules"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.2",
@@ -31,16 +34,19 @@
     "@types/dompurify": "^3.0.5",
     "@types/jsdom": "^21.1.7",
     "@types/marked": "^5.0.2",
-    "@types/mongoose": "^5.11.96",
-    "@types/next-auth": "^3.13.0",
     "@types/node": "^20.17.30",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "autoprefixer": "^10.4.21",
+    "autoprefixer": "^10.4.14",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.4",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.0",
     "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@10.8.1",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
   }
 }
