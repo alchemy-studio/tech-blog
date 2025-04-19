@@ -5,6 +5,8 @@ import connectDB from '@/lib/mongodb';
 import Article from '@/models/Article';
 import mongoose from 'mongoose';
 
+const DEFAULT_CHANGE_DESCRIPTION = 'Updated article content';
+
 // Get single article
 export async function GET(
   request: Request,
@@ -12,11 +14,13 @@ export async function GET(
 ) {
   try {
     await connectDB();
+    const _params = await params;
+    const articleId = await _params.id;
 
-    const article = await Article.findById(params.id)
+    const article = await Article.findById(articleId)
       .populate('author', 'username')
       .populate('versions.editor', 'username');
-
+    console.log("find article: ", article);
     if (!article) {
       return NextResponse.json(
         { error: 'Article not found' },
@@ -40,7 +44,9 @@ export async function PUT(
 ) {
   try {
     console.log('Starting article update...');
-    console.log('Article ID:', params.id);
+    const _params = await params;
+    const articleId = await _params.id;
+    console.log('Article ID:', articleId);
 
     const session = await getServerSession(authOptions);
     console.log('Session in API route:', {
@@ -64,7 +70,7 @@ export async function PUT(
     await connectDB();
     console.log('Database connected');
 
-    const article = await Article.findById(params.id);
+    const article = await Article.findById(articleId);
     console.log('Found article:', {
       id: article?._id,
       author: article?.author,
@@ -102,10 +108,6 @@ export async function PUT(
       );
     }
 
-    // Update article
-    if (title) article.title = title;
-    if (content) article.content = content;
-    if (tags) article.tags = tags;
 
     // Add new version if content changed
     if (content && content !== article.content) {
@@ -114,12 +116,17 @@ export async function PUT(
         content,
         editor: new mongoose.Types.ObjectId(session.user.id),
         editedAt: new Date(),
-        changeDescription: changeDescription || 'Updated article content',
+        changeDescription: changeDescription || DEFAULT_CHANGE_DESCRIPTION,
       };
       console.log('New version:', newVersion);
       article.versions.push(newVersion);
       article.currentVersion = article.versions.length - 1;
     }
+
+    // Update article
+    if (title) article.title = title;
+    if (content) article.content = content;
+    if (tags) article.tags = tags;
 
     // Ensure all versions have editor information
     article.versions = article.versions.map((version: {
@@ -127,10 +134,16 @@ export async function PUT(
       editor: mongoose.Types.ObjectId | null;
       editedAt: Date;
       changeDescription?: string;
-    }) => ({
-      ...version,
-      editor: version.editor || new mongoose.Types.ObjectId(session.user.id),
-    }));
+    }) => {
+      if (!version.editor) {
+        console.log('Found version with null editor, setting to current user:', session.user.id);
+        return {
+          ...version,
+          editor: new mongoose.Types.ObjectId(session.user.id),
+        };
+      }
+      return version;
+    });
 
     console.log('Saving article...');
     await article.save();
@@ -161,8 +174,10 @@ export async function DELETE(
     }
 
     await connectDB();
+    const _params = await params;
+    const articleId = await _params.id;
 
-    const article = await Article.findById(params.id);
+    const article = await Article.findById(articleId);
 
     if (!article) {
       return NextResponse.json(

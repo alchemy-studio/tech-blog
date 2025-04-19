@@ -14,7 +14,9 @@ interface Props {
 export default async function EditArticlePage({ params }: Props) {
   try {
     console.log('Starting edit page...');
-    console.log('Article ID:', params.id);
+    const _params = await params;
+    const articleId = await _params.id;
+    console.log('Article ID:', articleId);
     
     const session = await getServerSession(authOptions);
     console.log('Session in edit page:', session);
@@ -27,7 +29,7 @@ export default async function EditArticlePage({ params }: Props) {
     await connectDB();
     console.log('Database connected');
 
-    const article = await Article.findById(params.id);
+    const article = await Article.findById(articleId);
     console.log('Found article:', article);
 
     if (!article) {

@@ -11,8 +11,10 @@ export async function GET(
 ) {
   try {
     await connectDB();
+    const _params = await params;
+    const questionId = await _params.id;
 
-    const question = await Question.findById(params.id)
+    const question = await Question.findById(questionId)
       .populate('author', 'username')
       .populate('answers.author', 'username')
       .lean();
@@ -49,10 +51,12 @@ export async function PUT(
     }
 
     const { title, content, tags } = await request.json();
+    const _params = await params;
+    const questionId = await _params.id;
 
     await connectDB();
 
-    const question = await Question.findById(params.id);
+    const question = await Question.findById(questionId);
 
     if (!question) {
       return NextResponse.json(
@@ -79,7 +83,7 @@ export async function PUT(
 
     await question.save();
 
-    const updatedQuestion = await Question.findById(params.id)
+    const updatedQuestion = await Question.findById(questionId)
       .populate('author', 'username')
       .populate('answers.author', 'username')
       .lean();
@@ -108,8 +112,10 @@ export async function DELETE(
     }
 
     await connectDB();
+    const _params = await params;
+    const questionId = await _params.id;
 
-    const question = await Question.findById(params.id);
+    const question = await Question.findById(questionId);
 
     if (!question) {
       return NextResponse.json(

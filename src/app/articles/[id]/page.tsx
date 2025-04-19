@@ -20,7 +20,8 @@ interface Props {
 export default async function ArticlePage({ params }: Props) {
   try {
     // Validate article ID
-    const articleId = params?.id;
+    const _params = await params;
+    const articleId = await _params.id;
     if (!articleId || typeof articleId !== 'string') {
       notFound();
     }
@@ -47,6 +48,8 @@ export default async function ArticlePage({ params }: Props) {
     if (article.status !== 'published') {
       notFound();
     }
+
+    console.log("find article: ", article);
 
     // Check if user can edit the article
     const canEdit = session?.user && (

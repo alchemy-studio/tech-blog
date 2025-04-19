@@ -19,6 +19,8 @@ export async function POST(
     }
 
     const { content } = await request.json();
+    const _params = await params;
+    const questionId = await _params.id;
 
     if (!content) {
       return NextResponse.json(
@@ -29,7 +31,7 @@ export async function POST(
 
     await connectDB();
 
-    const question = await Question.findById(params.id);
+    const question = await Question.findById(questionId);
 
     if (!question) {
       return NextResponse.json(
@@ -47,7 +49,7 @@ export async function POST(
 
     await question.save();
 
-    const updatedQuestion = await Question.findById(params.id)
+    const updatedQuestion = await Question.findById(questionId)
       .populate('author', 'username')
       .populate('answers.author', 'username');
 

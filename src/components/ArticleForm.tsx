@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import MDEditor from '@uiw/react-md-editor';
 
+const DEFAULT_CHANGE_DESCRIPTION = 'Updated article content';
+
 interface ArticleFormProps {
   initialData?: {
     title: string;
@@ -46,7 +48,7 @@ export default function ArticleForm({ initialData, articleId }: ArticleFormProps
         title,
         content,
         tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        changeDescription: changeDescription || 'Updated article content',
+        changeDescription: changeDescription || DEFAULT_CHANGE_DESCRIPTION,
       };
       console.log('Prepared payload:', payload);
 
@@ -141,7 +143,7 @@ export default function ArticleForm({ initialData, articleId }: ArticleFormProps
           value={changeDescription}
           onChange={(e) => setChangeDescription(e.target.value)}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="简要说明本次修改的内容"
+          placeholder={DEFAULT_CHANGE_DESCRIPTION}
         />
       </div>
 
