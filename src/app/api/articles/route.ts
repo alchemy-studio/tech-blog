@@ -3,6 +3,8 @@ import connectDB from '@/lib/mongodb';
 import Article from '@/models/Article';
 import User from '@/models/User';
 import mongoose from 'mongoose';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
 
 export async function GET(request: Request) {
   try {
@@ -55,6 +57,50 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Error fetching articles:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { title, content, tags } = await request.json();
+
+    if (!title || !content) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    const article = await Article.create({
+      title,
+      content,
+      tags: tags || [],
+      author: new mongoose.Types.ObjectId(session.user.id),
+      versions: [{
+        content,
+        editor: new mongoose.Types.ObjectId(session.user.id),
+        editedAt: new Date(),
+        changeDescription: 'Initial version',
+      }],
+    });
+
+    return NextResponse.json(article, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating article:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
