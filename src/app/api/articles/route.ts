@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Article from '@/models/Article';
 import User from '@/models/User';
+import mongoose from 'mongoose';
 
 export async function GET(request: Request) {
   try {
@@ -12,9 +13,6 @@ export async function GET(request: Request) {
     const tag = searchParams.get('tag') || '';
 
     await connectDB();
-
-    // 确保 User 模型已注册
-    await User.findOne();
 
     const query: any = { status: 'published' };
     if (search) {
@@ -29,16 +27,28 @@ export async function GET(request: Request) {
 
     const skip = (page - 1) * limit;
     const articles = await Article.find(query)
-      .populate('author', 'username')
+      .populate({
+        path: 'author',
+        select: 'username',
+        model: User
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
+    // Ensure each article has an author with a username
+    const processedArticles = articles.map(article => ({
+      ...article,
+      author: {
+        username: article.author?.username || 'Unknown Author'
+      }
+    }));
+
     const total = await Article.countDocuments(query);
 
     return NextResponse.json({
-      articles,
+      articles: processedArticles,
       total,
       currentPage: page,
       totalPages: Math.ceil(total / limit)

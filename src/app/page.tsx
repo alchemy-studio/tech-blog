@@ -24,7 +24,7 @@ interface Question {
     username: string;
   };
   createdAt: string;
-  answers: any[];
+  tags: string[];
 }
 
 export default function Home() {
@@ -94,7 +94,7 @@ export default function Home() {
                         {article.content}
                       </p>
                       <div className="flex items-center text-sm text-gray-500">
-                        <span>{article.author.username}</span>
+                        <span>{article.author?.username || 'Unknown Author'}</span>
                         <span className="mx-2">•</span>
                         <time dateTime={article.createdAt}>
                           {format(new Date(article.createdAt), 'yyyy-MM-dd')}
@@ -109,46 +109,6 @@ export default function Home() {
 
           {/* 侧边栏 */}
           <div className="lg:col-span-1">
-            <section className="bg-white rounded-lg shadow p-6 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">热门问答</h2>
-                <Link
-                  href="/questions"
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  更多 →
-                </Link>
-              </div>
-              {isLoading ? (
-                <div className="animate-pulse space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {hotQuestions.map((question) => (
-                    <div
-                      key={question._id}
-                      className="border-b border-gray-200 pb-4 last:border-0 last:pb-0"
-                    >
-                      <Link href={`/questions/${question._id}`}>
-                        <h3 className="text-base font-medium text-gray-900 hover:text-blue-600 mb-2">
-                          {question.title}
-                        </h3>
-                      </Link>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>{question.answers.length} 个回答</span>
-                        <time dateTime={question.createdAt}>
-                          {format(new Date(question.createdAt), 'MM-dd')}
-                        </time>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
             <section className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">快速操作</h2>
               <div className="space-y-4">
