@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { useSession } from 'next-auth/react';
 
 interface Article {
   _id: string;
@@ -27,6 +28,7 @@ interface Question {
 }
 
 export default function Home() {
+  const { data: session } = useSession();
   const [latestArticles, setLatestArticles] = useState<Article[]>([]);
   const [hotQuestions, setHotQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,23 +109,43 @@ export default function Home() {
 
           {/* 侧边栏 */}
           <div className="lg:col-span-1">
-            <section className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">快速操作</h2>
-              <div className="space-y-4">
-                <Link
-                  href="/articles/new"
-                  className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  发布文章
-                </Link>
-                <Link
-                  href="/questions/new"
-                  className="block w-full text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
-                >
-                  提问
-                </Link>
-              </div>
-            </section>
+            {session ? (
+              <section className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">快速操作</h2>
+                <div className="space-y-4">
+                  <Link
+                    href="/articles/new"
+                    className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    发布文章
+                  </Link>
+                  <Link
+                    href="/questions/new"
+                    className="block w-full text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+                  >
+                    提问
+                  </Link>
+                </div>
+              </section>
+            ) : (
+              <section className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">登录后操作</h2>
+                <div className="space-y-4">
+                  <Link
+                    href="/login"
+                    className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    登录
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="block w-full text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
+                  >
+                    注册
+                  </Link>
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </main>
