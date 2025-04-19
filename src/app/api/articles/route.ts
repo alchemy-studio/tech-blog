@@ -1,31 +1,50 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Article from '@/models/Article';
+import User from '@/models/User';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    
-    // 临时返回模拟数据
-    const mockArticles = Array.from({ length: limit }, (_, i) => ({
-      _id: `article-${i + 1}`,
-      title: `示例文章 ${i + 1}`,
-      content: '这是一篇示例文章的内容，展示了文章的基本格式和样式。这里可以包含很多技术相关的内容...',
-      author: {
-        username: '示例作者'
-      },
-      createdAt: new Date().toISOString(),
-      tags: ['技术', 'Web开发', 'Next.js']
-    }));
+    const search = searchParams.get('search') || '';
+    const tag = searchParams.get('tag') || '';
+
+    await connectDB();
+
+    // 确保 User 模型已注册
+    await User.findOne();
+
+    const query: any = { status: 'published' };
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (tag) {
+      query.tags = tag;
+    }
+
+    const skip = (page - 1) * limit;
+    const articles = await Article.find(query)
+      .populate('author', 'username')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await Article.countDocuments(query);
 
     return NextResponse.json({
-      articles: mockArticles,
-      total: mockArticles.length,
-      currentPage: 1,
-      totalPages: 1
+      articles,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (error: any) {
+    console.error('Error fetching articles:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
