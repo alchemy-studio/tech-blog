@@ -1,0 +1,122 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import MDEditor from '@uiw/react-md-editor';
+
+interface ArticleFormProps {
+  initialData?: {
+    title: string;
+    content: string;
+    tags: string[];
+  };
+  articleId?: string;
+}
+
+export default function ArticleForm({ initialData, articleId }: ArticleFormProps) {
+  const router = useRouter();
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [content, setContent] = useState(initialData?.content || '');
+  const [tags, setTags] = useState(initialData?.tags?.join(', ') || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const response = await fetch(
+        articleId 
+          ? `/api/articles/${articleId}`
+          : '/api/articles',
+        {
+          method: articleId ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title,
+            content,
+            tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+            changeDescription: 'Updated article content',
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to save article');
+      }
+
+      const data = await response.json();
+      router.push(`/articles/${data._id}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
+      <div>
+        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+          标题
+        </label>
+        <input
+          type="text"
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+          内容
+        </label>
+        <div className="mt-1">
+          <MDEditor
+            value={content}
+            onChange={(value) => setContent(value || '')}
+            height={500}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
+          标签 (用逗号分隔)
+        </label>
+        <input
+          type="text"
+          id="tags"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="例如: JavaScript, React, Next.js"
+        />
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+        >
+          {isSubmitting ? '保存中...' : '保存文章'}
+        </button>
+      </div>
+    </form>
+  );
+} 
