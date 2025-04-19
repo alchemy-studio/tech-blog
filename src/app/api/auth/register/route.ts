@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
 
@@ -36,14 +35,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // 加密密码
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // 创建新用户
+    // 创建新用户，直接存储明文密码
     const newUser = await User.create({
       username,
       email,
-      password: hashedPassword,
+      password, // 直接存储明文密码
       role: 'user', // 默认角色
     });
 

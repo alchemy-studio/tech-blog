@@ -1,102 +1,104 @@
-import { connect, disconnect } from 'mongoose';
+import mongoose from 'mongoose';
 import User from '../src/models/User';
 import Article from '../src/models/Article';
 import Question from '../src/models/Question';
+import Answer from '../src/models/Answer';
 
-const MONGODB_URI = process.env.MONGODB_URI as string;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tech_blog';
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
-}
-
-async function seedUsers(): Promise<void> {
+async function seed() {
   try {
-    await connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
     // Clear existing data
     await User.deleteMany({});
     await Article.deleteMany({});
     await Question.deleteMany({});
+    await Answer.deleteMany({});
 
-    // Create test users with plain text passwords
-    const users = await User.create([
-      {
-        username: 'admin',
-        email: 'admin@example.com',
-        password: 'password123',
-        role: 'editor',
-      },
-      {
-        username: 'user1',
-        email: 'user1@example.com',
-        password: 'password123',
-        role: 'user',
-      },
-    ]);
+    // Create users
+    const admin = await User.create({
+      username: 'admin',
+      email: 'admin@example.com',
+      password: 'password123',
+      role: 'editor',
+    });
 
-    console.log('Created test users');
+    const user1 = await User.create({
+      username: 'user1',
+      email: 'user1@example.com',
+      password: 'password123',
+      role: 'user',
+    });
 
-    // Create test articles
+    // Create articles
     const articles = await Article.create([
       {
-        title: '使用 Next.js 13 构建现代 Web 应用',
-        content: '# Next.js 13 简介\n\nNext.js 13 带来了革命性的改变...',
-        author: users[0]._id,
+        title: 'Getting Started with Next.js',
+        content: '# Getting Started with Next.js\n\nNext.js is a powerful React framework...',
+        author: admin._id,
         tags: ['Next.js', 'React', 'Web Development'],
         status: 'published',
+        versions: [{
+          content: '# Getting Started with Next.js\n\nNext.js is a powerful React framework...',
+          editor: admin._id,
+          editedAt: new Date(),
+          changeDescription: 'Initial version',
+        }],
       },
       {
-        title: 'MongoDB 最佳实践指南',
-        content: '# MongoDB 性能优化\n\n本文将介绍 MongoDB 的各种优化技巧...',
-        author: users[1]._id,
-        tags: ['MongoDB', 'Database', 'Performance'],
+        title: 'Understanding TypeScript',
+        content: '# Understanding TypeScript\n\nTypeScript adds static typing to JavaScript...',
+        author: admin._id,
+        tags: ['TypeScript', 'JavaScript', 'Programming'],
         status: 'published',
+        versions: [{
+          content: '# Understanding TypeScript\n\nTypeScript adds static typing to JavaScript...',
+          editor: admin._id,
+          editedAt: new Date(),
+          changeDescription: 'Initial version',
+        }],
       },
     ]);
 
-    console.log('Created test articles');
-
-    // Create test questions
-    await Question.create([
+    // Create questions
+    const questions = await Question.create([
       {
-        title: '如何在 Next.js 中实现服务端渲染？',
-        content: '我在使用 Next.js 开发项目时遇到了一些问题...',
-        author: users[1]._id,
-        tags: ['Next.js', 'SSR'],
-        answers: [
-          {
-            content: '在 Next.js 13 中，你可以使用新的 App Router...',
-            author: users[0]._id,
-            votes: 5,
-            isAccepted: true,
-          },
-        ],
+        title: 'How to handle authentication in Next.js?',
+        content: 'I am building a Next.js application and need help with authentication...',
+        author: user1._id,
+        tags: ['Next.js', 'Authentication', 'Web Development'],
       },
       {
-        title: 'MongoDB 如何实现全文搜索？',
-        content: '我需要在我的项目中实现一个搜索功能...',
-        author: users[0]._id,
-        tags: ['MongoDB', 'Search'],
-        answers: [
-          {
-            content: 'MongoDB 提供了 $text 操作符来支持全文搜索...',
-            author: users[1]._id,
-            votes: 3,
-            isAccepted: false,
-          },
-        ],
+        title: 'Best practices for TypeScript interfaces',
+        content: 'What are the best practices for creating and using TypeScript interfaces?',
+        author: admin._id,
+        tags: ['TypeScript', 'Programming', 'Best Practices'],
       },
     ]);
 
-    console.log('Created test questions');
-    console.log('Database seeded successfully');
+    // Create answers
+    await Answer.create([
+      {
+        content: 'You can use NextAuth.js for easy authentication integration...',
+        author: admin._id,
+        question: questions[0]._id,
+      },
+      {
+        content: 'For TypeScript interfaces, you should follow these principles...',
+        author: user1._id,
+        question: questions[1]._id,
+      },
+    ]);
+
+    console.log('Seed data created successfully');
   } catch (error) {
-    console.error('Error seeding database:', error);
-    process.exit(1);
+    console.error('Error seeding data:', error);
   } finally {
-    await disconnect();
+    await mongoose.disconnect();
+    console.log('Disconnected from MongoDB');
   }
 }
 
-seedUsers().catch(console.error); 
+seed(); 

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Article from '@/models/Article';
 import User from '@/models/User';
@@ -9,6 +9,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 
 interface Props {
   params: {
@@ -25,21 +26,48 @@ interface ArticleVersion {
 
 export default async function ArticlePage({ params }: Props) {
   try {
-    await connectDB();
-    const session = await getServerSession(authOptions);
+    console.log('Starting article page render...');
+    console.log('Article ID:', params?.id);
 
-    console.log('Fetching article with ID:', params.id);
-    const article = await Article.findById(params.id)
-      .populate('author', 'username')
-      .populate('versions.editor', 'username');
+    // Validate article ID
+    const articleId = params?.id;
+    if (!articleId || typeof articleId !== 'string') {
+      console.log('Invalid article ID');
+      notFound();
+    }
+
+    console.log('Connecting to database...');
+    await connectDB();
+    console.log('Database connected successfully');
+
+    console.log('Checking session...');
+    const session = await getServerSession(authOptions);
+    console.log('Session details:', {
+      exists: !!session,
+      user: session?.user,
+      role: session?.user?.role,
+      id: session?.user?.id
+    });
+
+    console.log('Fetching article...');
+    const article = await Article.findById(articleId)
+      .populate({
+        path: 'author',
+        select: 'username'
+      })
+      .populate({
+        path: 'versions.editor',
+        select: 'username',
+        model: 'User'
+      });
 
     if (!article) {
-      console.log('Article not found:', params.id);
+      console.log('Article not found');
       notFound();
     }
 
     if (article.status !== 'published') {
-      console.log('Article not published:', params.id);
+      console.log('Article not published');
       notFound();
     }
 
@@ -48,13 +76,21 @@ export default async function ArticlePage({ params }: Props) {
       session.user.role === 'editor' || 
       article.author.toString() === session.user.id
     );
+    console.log('Edit permissions:', {
+      canEdit,
+      userRole: session?.user?.role,
+      userId: session?.user?.id,
+      authorId: article.author.toString()
+    });
 
     // Convert markdown to HTML
+    console.log('Converting markdown to HTML...');
     const window = new JSDOM('').window;
     const purify = DOMPurify(window);
     const markdownContent = article.content as string;
     const htmlContent = marked.parse(markdownContent) as string;
     const cleanHtml = purify.sanitize(htmlContent);
+    console.log('Markdown conversion complete');
 
     return (
       <div className="container mx-auto px-4 py-8">
@@ -81,25 +117,35 @@ export default async function ArticlePage({ params }: Props) {
             <span>版本: {article.currentVersion + 1}</span>
           </div>
 
-          {article.versions?.length > 1 && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="text-sm font-medium text-gray-900 mb-2">版本历史</h3>
-              <div className="space-y-2">
-                {article.versions.map((version: ArticleVersion, index: number) => (
-                  <div key={index} className="text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">
-                        版本 {index + 1} - {format(new Date(version.editedAt), 'yyyy-MM-dd HH:mm')}
-                      </span>
-                      <span className="text-gray-500">
-                        编辑者: {version.editor?.username || '未知编辑者'}
-                      </span>
+          {article.versions && article.versions.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold mb-4">版本历史</h2>
+              <div className="space-y-4">
+                {article.versions.map((version: {
+                  content: string;
+                  editor: any;
+                  editedAt: Date;
+                  changeDescription?: string;
+                }, index: number) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">
+                          版本 {index + 1} - {new Date(version.editedAt).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          编辑者: {version.editor?.username || '未知用户'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          修改说明: {version.changeDescription || '无修改说明'}
+                        </p>
+                      </div>
+                      {index === article.currentVersion && (
+                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                          当前版本
+                        </span>
+                      )}
                     </div>
-                    {version.changeDescription && (
-                      <p className="text-gray-500 mt-1">
-                        修改说明: {version.changeDescription}
-                      </p>
-                    )}
                   </div>
                 ))}
               </div>
@@ -124,8 +170,11 @@ export default async function ArticlePage({ params }: Props) {
         </article>
       </div>
     );
-  } catch (error) {
-    console.error('Error fetching article:', error);
+  } catch (error: unknown) {
+    console.error('Error in article page:', error);
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
     notFound();
   }
 } 

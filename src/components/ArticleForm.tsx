@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import MDEditor from '@uiw/react-md-editor';
 
 interface ArticleFormProps {
@@ -15,9 +16,11 @@ interface ArticleFormProps {
 
 export default function ArticleForm({ initialData, articleId }: ArticleFormProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [title, setTitle] = useState(initialData?.title || '');
   const [content, setContent] = useState(initialData?.content || '');
   const [tags, setTags] = useState(initialData?.tags?.join(', ') || '');
+  const [changeDescription, setChangeDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,6 +30,16 @@ export default function ArticleForm({ initialData, articleId }: ArticleFormProps
     setError('');
 
     try {
+      console.log('Submitting form...');
+      const payload = {
+        title,
+        content,
+        tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        changeDescription: changeDescription || 'Updated article content',
+        author: session?.user?.id,
+      };
+      console.log('Payload:', payload);
+
       const response = await fetch(
         articleId 
           ? `/api/articles/${articleId}`
@@ -36,23 +49,23 @@ export default function ArticleForm({ initialData, articleId }: ArticleFormProps
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            title,
-            content,
-            tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-            changeDescription: 'Updated article content',
-          }),
+          body: JSON.stringify(payload),
+          credentials: 'include',
         }
       );
 
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
       if (!response.ok) {
-        throw new Error('Failed to save article');
+        throw new Error(data.error || 'Failed to save article');
       }
 
-      const data = await response.json();
       router.push(`/articles/${data._id}`);
       router.refresh();
     } catch (err) {
+      console.error('Error submitting form:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);
@@ -105,6 +118,20 @@ export default function ArticleForm({ initialData, articleId }: ArticleFormProps
           onChange={(e) => setTags(e.target.value)}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder="例如: JavaScript, React, Next.js"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="changeDescription" className="block text-sm font-medium text-gray-700">
+          修改说明
+        </label>
+        <input
+          type="text"
+          id="changeDescription"
+          value={changeDescription}
+          onChange={(e) => setChangeDescription(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="简要说明本次修改的内容"
         />
       </div>
 
