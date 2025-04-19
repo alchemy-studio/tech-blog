@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectDB from '@/lib/mongodb';
 import Article from '@/models/Article';
 import User from '@/models/User';
@@ -6,6 +8,7 @@ import { format } from 'date-fns';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+import Link from 'next/link';
 
 interface Props {
   params: {
@@ -16,6 +19,7 @@ interface Props {
 export default async function ArticlePage({ params }: Props) {
   try {
     await connectDB();
+    const session = await getServerSession(authOptions);
 
     const article = await Article.findById(params.id)
       .populate('author', 'username')
@@ -24,6 +28,12 @@ export default async function ArticlePage({ params }: Props) {
     if (!article || article.status !== 'published') {
       notFound();
     }
+
+    // Check if user can edit the article
+    const canEdit = session?.user && (
+      session.user.role === 'editor' || 
+      article.author.toString() === session.user.id
+    );
 
     // Convert markdown to HTML
     const window = new JSDOM('').window;
@@ -35,7 +45,17 @@ export default async function ArticlePage({ params }: Props) {
     return (
       <div className="container mx-auto px-4 py-8">
         <article className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold mb-4">{article.title}</h1>
+          <div className="flex justify-between items-start mb-4">
+            <h1 className="text-4xl font-bold">{article.title}</h1>
+            {canEdit && (
+              <Link
+                href={`/articles/${article._id}/edit`}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                编辑文章
+              </Link>
+            )}
+          </div>
           
           <div className="flex items-center text-gray-600 mb-6">
             <span>作者: {(article.author as any).username}</span>

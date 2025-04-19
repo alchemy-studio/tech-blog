@@ -16,6 +16,7 @@ export interface IArticle extends mongoose.Document {
   status: 'draft' | 'published' | 'pending_review';
   versions: IArticleVersion[];
   currentVersion: number;
+  locked: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +70,10 @@ const articleSchema = new mongoose.Schema<IArticle>(
     currentVersion: {
       type: Number,
       default: 0,
+    },
+    locked: {
+      type: Boolean,
+      default: false,
     },
   },
   {
