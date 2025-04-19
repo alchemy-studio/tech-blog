@@ -1,0 +1,35 @@
+# 依赖目录
+node_modules
+.pnpm-store
+
+# Next.js 构建输出
+.next
+
+# 环境文件
+.env
+.env.*
+
+# Git 相关
+.git
+.gitignore
+
+# IDE 配置
+.vscode
+.idea
+
+# 日志文件
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 测试文件
+__tests__
+*.test.*
+*.spec.*
+
+# Docker 相关
+Dockerfile
+.dockerignore
+docker-compose.yml 
