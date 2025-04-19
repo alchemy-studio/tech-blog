@@ -90,6 +90,7 @@ export async function POST(request: Request) {
       content,
       tags: tags || [],
       author: new mongoose.Types.ObjectId(session.user.id),
+      status: 'published',
       versions: [{
         content,
         editor: new mongoose.Types.ObjectId(session.user.id),
