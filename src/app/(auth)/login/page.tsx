@@ -18,22 +18,30 @@ export default function LoginPage() {
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+    const remember = formData.get('remember') === 'true';
 
     try {
       const result = await signIn('credentials', {
         email,
         password,
+        remember,
         redirect: false,
       });
 
       if (result?.error) {
-        setError('邮箱或密码错误');
+        if (result.error === 'CredentialsSignin') {
+          setError('邮箱或密码错误');
+        } else if (result.error === 'EmailNotVerified') {
+          setError('请先验证邮箱');
+        } else {
+          setError('登录失败，请稍后重试');
+        }
       } else {
         router.push('/');
         router.refresh();
       }
     } catch (error) {
-      setError('登录时发生错误');
+      setError('登录时发生错误，请稍后重试');
     } finally {
       setIsLoading(false);
     }
@@ -91,6 +99,27 @@ export default function LoginPage() {
                   required
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember"
+                  name="remember"
+                  type="checkbox"
+                  value="true"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember" className="ml-2 block text-sm text-gray-900">
+                  记住我
+                </label>
+              </div>
+
+              <div className="text-sm">
+                <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                  忘记密码？
+                </Link>
               </div>
             </div>
 

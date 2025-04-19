@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 export interface IUser extends mongoose.Document {
   username: string;
@@ -65,37 +64,9 @@ const userSchema = new mongoose.Schema<IUser>(
 userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ email: 1 }, { unique: true });
 
-// 密码加密中间件
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error: any) {
-    next(error);
-  }
-});
-
-// 密码比对方法
+// 简单的密码比对方法
 userSchema.methods.comparePassword = async function (candidatePassword: string) {
-  try {
-    return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
-    return false;
-  }
+  return this.password === candidatePassword;
 };
-
-// 处理重复键错误
-userSchema.post('save', function(error: any, doc: any, next: any) {
-  if (error.name === 'MongoServerError' && error.code === 11000) {
-    const field = Object.keys(error.keyPattern)[0];
-    next(new Error(`${field === 'username' ? '用户名' : '邮箱'}已被使用`));
-  } else {
-    next(error);
-  }
-});
 
 export default mongoose.models.User || mongoose.model<IUser>('User', userSchema); 

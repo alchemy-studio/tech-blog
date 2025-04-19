@@ -1,6 +1,4 @@
-import 'dotenv/config';
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import { connect, disconnect } from 'mongoose';
 import User from '../src/models/User';
 import Article from '../src/models/Article';
 import Question from '../src/models/Question';
@@ -11,110 +9,94 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable');
 }
 
-async function seedDatabase() {
+async function seedUsers(): Promise<void> {
   try {
-    await mongoose.connect(MONGODB_URI);
+    await connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // 清除现有数据
+    // Clear existing data
     await User.deleteMany({});
     await Article.deleteMany({});
     await Question.deleteMany({});
 
-    // 创建用户
-    const user = await User.create({
-      username: 'admin',
-      email: 'admin@example.com',
-      password: await bcrypt.hash('password123', 10),
-      role: 'editor',
-    });
+    // Create test users with plain text passwords
+    const users = await User.create([
+      {
+        username: 'admin',
+        email: 'admin@example.com',
+        password: 'password123',
+        role: 'editor',
+      },
+      {
+        username: 'user1',
+        email: 'user1@example.com',
+        password: 'password123',
+        role: 'user',
+      },
+    ]);
 
-    // 创建文章
+    console.log('Created test users');
+
+    // Create test articles
     const articles = await Article.create([
       {
         title: '使用 Next.js 13 构建现代 Web 应用',
-        content: `
-# 使用 Next.js 13 构建现代 Web 应用
-
-Next.js 13 带来了许多激动人心的新特性，包括：
-
-- App Router
-- React Server Components
-- 改进的数据获取
-- 内置的 SEO 优化
-
-## 为什么选择 Next.js？
-
-Next.js 提供了优秀的开发者体验和性能优化...`,
-        author: user._id,
-        tags: ['Next.js', 'React', 'Web开发'],
+        content: '# Next.js 13 简介\n\nNext.js 13 带来了革命性的改变...',
+        author: users[0]._id,
+        tags: ['Next.js', 'React', 'Web Development'],
         status: 'published',
       },
       {
         title: 'MongoDB 最佳实践指南',
-        content: `
-# MongoDB 最佳实践指南
-
-MongoDB 是一个流行的 NoSQL 数据库，本文将介绍一些最佳实践：
-
-## 1. 正确的索引策略
-
-- 为常用查询创建索引
-- 避免过多索引
-- 监控索引使用情况
-
-## 2. 数据模型设计
-
-选择适当的数据模型对性能至关重要...`,
-        author: user._id,
-        tags: ['MongoDB', '数据库', '性能优化'],
-        status: 'published',
-      },
-      {
-        title: 'TypeScript 高级技巧',
-        content: `
-# TypeScript 高级技巧
-
-TypeScript 提供了强大的类型系统，让我们看看一些高级用法：
-
-## 泛型
-
-泛型是 TypeScript 最强大的特性之一...
-
-## 条件类型
-
-条件类型让我们能够基于类型关系创建新的类型...`,
-        author: user._id,
-        tags: ['TypeScript', '编程语言', '前端开发'],
+        content: '# MongoDB 性能优化\n\n本文将介绍 MongoDB 的各种优化技巧...',
+        author: users[1]._id,
+        tags: ['MongoDB', 'Database', 'Performance'],
         status: 'published',
       },
     ]);
 
-    // 创建问题
-    const questions = await Question.create([
+    console.log('Created test articles');
+
+    // Create test questions
+    await Question.create([
       {
-        title: '如何在 Next.js 中实现 SSR？',
-        content: '我正在使用 Next.js 开发一个应用，想了解如何正确实现服务器端渲染...',
-        author: user._id,
-        tags: ['Next.js', 'React', 'SSR'],
+        title: '如何在 Next.js 中实现服务端渲染？',
+        content: '我在使用 Next.js 开发项目时遇到了一些问题...',
+        author: users[1]._id,
+        tags: ['Next.js', 'SSR'],
+        answers: [
+          {
+            content: '在 Next.js 13 中，你可以使用新的 App Router...',
+            author: users[0]._id,
+            votes: 5,
+            isAccepted: true,
+          },
+        ],
       },
       {
-        title: 'MongoDB 索引优化策略',
-        content: '在处理大量数据时，MongoDB 的查询性能变得很慢，如何通过索引优化？',
-        author: user._id,
-        tags: ['MongoDB', '数据库', '性能优化'],
+        title: 'MongoDB 如何实现全文搜索？',
+        content: '我需要在我的项目中实现一个搜索功能...',
+        author: users[0]._id,
+        tags: ['MongoDB', 'Search'],
+        answers: [
+          {
+            content: 'MongoDB 提供了 $text 操作符来支持全文搜索...',
+            author: users[1]._id,
+            votes: 3,
+            isAccepted: false,
+          },
+        ],
       },
     ]);
 
+    console.log('Created test questions');
     console.log('Database seeded successfully');
-    console.log(`Created ${articles.length} articles`);
-    console.log(`Created ${questions.length} questions`);
   } catch (error) {
     console.error('Error seeding database:', error);
+    process.exit(1);
   } finally {
-    await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
+    await disconnect();
   }
 }
 
-seedDatabase(); 
+seedUsers().catch(console.error); 
