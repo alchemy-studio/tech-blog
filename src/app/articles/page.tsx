@@ -1,21 +1,21 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
+import { Types } from 'mongoose';
 import connectDB from '@/lib/mongodb';
 import Article from '@/models/Article';
 
-interface Article {
-  _id: string;
+interface ArticleType {
+  _id: Types.ObjectId;
   title: string;
   content: string;
   author: {
+    _id: Types.ObjectId;
     username: string;
   };
   tags: string[];
-  createdAt: string;
+  createdAt: Date;
+  status: string;
+  __v: number;
 }
 
 async function getArticles(page = 1, limit = 10) {
@@ -27,7 +27,8 @@ async function getArticles(page = 1, limit = 10) {
       .populate('author', 'username')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean() as ArticleType[];
 
     const total = await Article.countDocuments({ status: 'published' });
 
@@ -40,7 +41,7 @@ async function getArticles(page = 1, limit = 10) {
   } catch (error) {
     console.error('Error fetching articles:', error);
     return {
-      articles: [],
+      articles: [] as ArticleType[],
       total: 0,
       totalPages: 0,
       currentPage: 1,
@@ -69,7 +70,7 @@ export default async function ArticlesPage({
       </div>
 
       <div className="space-y-8">
-        {articles.map((article: any) => (
+        {articles.map((article) => (
           <article key={article._id.toString()} className="bg-white p-6 rounded-lg shadow">
             <Link href={`/articles/${article._id}`}>
               <h2 className="text-2xl font-bold text-gray-900 hover:text-gray-600">
@@ -77,7 +78,7 @@ export default async function ArticlesPage({
               </h2>
             </Link>
             <div className="mt-2 flex items-center text-sm text-gray-500">
-              <span>作者: {(article.author as any).username}</span>
+              <span>作者: {article.author.username}</span>
               <span className="mx-2">•</span>
               <time dateTime={article.createdAt.toString()}>
                 {format(new Date(article.createdAt), 'yyyy-MM-dd')}
