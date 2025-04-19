@@ -145,6 +145,9 @@ export async function PUT(
       return version;
     });
 
+    // Populate editor information before saving
+    await article.populate('versions.editor', 'username');
+
     console.log('Saving article...');
     await article.save();
     console.log('Article saved successfully');

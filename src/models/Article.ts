@@ -81,20 +81,6 @@ const articleSchema = new mongoose.Schema<IArticle>(
   }
 );
 
-// 创建新版本的中间件
-articleSchema.pre('save', function(next) {
-  if (this.isModified('content')) {
-    this.versions.push({
-      content: this.content,
-      editor: this.isNew ? this.author : this.get('editor'),
-      editedAt: new Date(),
-      changeDescription: this.get('changeDescription'),
-    });
-    this.currentVersion = this.versions.length - 1;
-  }
-  next();
-});
-
 // 添加全文搜索索引
 articleSchema.index({
   title: 'text',
