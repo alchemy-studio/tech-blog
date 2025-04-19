@@ -16,16 +16,30 @@ interface Props {
   };
 }
 
+interface ArticleVersion {
+  content: string;
+  editor: any;
+  editedAt: Date;
+  changeDescription?: string;
+}
+
 export default async function ArticlePage({ params }: Props) {
   try {
     await connectDB();
     const session = await getServerSession(authOptions);
 
+    console.log('Fetching article with ID:', params.id);
     const article = await Article.findById(params.id)
       .populate('author', 'username')
       .populate('versions.editor', 'username');
 
-    if (!article || article.status !== 'published') {
+    if (!article) {
+      console.log('Article not found:', params.id);
+      notFound();
+    }
+
+    if (article.status !== 'published') {
+      console.log('Article not published:', params.id);
       notFound();
     }
 
@@ -58,15 +72,42 @@ export default async function ArticlePage({ params }: Props) {
           </div>
           
           <div className="flex items-center text-gray-600 mb-6">
-            <span>作者: {(article.author as any).username}</span>
+            <span>作者: {article.author?.username || '未知作者'}</span>
             <span className="mx-2">&bull;</span>
             <time dateTime={article.createdAt.toString()}>
               {format(new Date(article.createdAt), 'yyyy-MM-dd')}
             </time>
+            <span className="mx-2">&bull;</span>
+            <span>版本: {article.currentVersion + 1}</span>
           </div>
 
+          {article.versions?.length > 1 && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">版本历史</h3>
+              <div className="space-y-2">
+                {article.versions.map((version: ArticleVersion, index: number) => (
+                  <div key={index} className="text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">
+                        版本 {index + 1} - {format(new Date(version.editedAt), 'yyyy-MM-dd HH:mm')}
+                      </span>
+                      <span className="text-gray-500">
+                        编辑者: {version.editor?.username || '未知编辑者'}
+                      </span>
+                    </div>
+                    {version.changeDescription && (
+                      <p className="text-gray-500 mt-1">
+                        修改说明: {version.changeDescription}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2 mb-6">
-            {article.tags.map((tag: string) => (
+            {article.tags?.map((tag: string) => (
               <span
                 key={tag}
                 className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
