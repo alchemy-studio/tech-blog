@@ -35,61 +35,112 @@ export async function GET(
 
 // Update article
 export async function PUT(
-  req: Request,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('Starting article update...');
+    console.log('Article ID:', params.id);
+
     const session = await getServerSession(authOptions);
+    console.log('Session in API route:', {
+      exists: !!session,
+      user: session?.user,
+      role: session?.user?.role,
+      id: session?.user?.id
+    });
+
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log('No valid session found in API route');
+      return NextResponse.json(
+        { error: 'Unauthorized - No valid session' },
+        { status: 401 }
+      );
     }
 
+    const { title, content, tags, changeDescription } = await request.json();
+    console.log('Update data:', { title, content, tags, changeDescription });
+
     await connectDB();
+    console.log('Database connected');
+
     const article = await Article.findById(params.id);
+    console.log('Found article:', {
+      id: article?._id,
+      author: article?.author,
+      title: article?.title
+    });
+
     if (!article) {
-      return NextResponse.json({ error: 'Article not found' }, { status: 404 });
+      console.log('Article not found');
+      return NextResponse.json(
+        { error: 'Article not found' },
+        { status: 404 }
+      );
     }
 
     // Check if user is author or editor
-    if (article.author.toString() !== session.user.id && session.user.role !== 'editor') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const isAuthor = article.author.toString() === session.user.id;
+    const isEditor = session.user.role === 'editor';
+    console.log('Permission check:', { 
+      isAuthor, 
+      isEditor, 
+      userId: session.user.id, 
+      authorId: article.author.toString(),
+      userRole: session.user.role
+    });
+
+    if (!isAuthor && !isEditor) {
+      console.log('User not authorized:', {
+        userId: session.user.id,
+        authorId: article.author.toString(),
+        userRole: session.user.role
+      });
+      return NextResponse.json(
+        { error: 'Unauthorized - Insufficient permissions' },
+        { status: 401 }
+      );
     }
 
-    const { title, content, tags, changeDescription } = await req.json();
-
-    // Only create a new version if content has changed
-    if (content !== article.content) {
-      // Create new version
-      const newVersion = {
-        content: article.content,
-        editor: session.user.id,
-        editedAt: new Date(),
-        changeDescription: changeDescription || 'Updated article content'
-      };
-
-      // Add new version to the beginning of the array
-      article.versions.unshift(newVersion);
-
-      // Update article content
-      article.content = content;
-    }
-
-    // Update other fields
+    // Update article
     if (title) article.title = title;
+    if (content) article.content = content;
     if (tags) article.tags = tags;
 
+    // Add new version if content changed
+    if (content && content !== article.content) {
+      console.log('Content changed, creating new version');
+      const newVersion = {
+        content,
+        editor: new mongoose.Types.ObjectId(session.user.id),
+        editedAt: new Date(),
+        changeDescription: changeDescription || 'Updated article content',
+      };
+      console.log('New version:', newVersion);
+      article.versions.push(newVersion);
+      article.currentVersion = article.versions.length - 1;
+    }
+
+    // Ensure all versions have editor information
+    article.versions = article.versions.map((version: {
+      content: string;
+      editor: mongoose.Types.ObjectId | null;
+      editedAt: Date;
+      changeDescription?: string;
+    }) => ({
+      ...version,
+      editor: version.editor || new mongoose.Types.ObjectId(session.user.id),
+    }));
+
+    console.log('Saving article...');
     await article.save();
+    console.log('Article saved successfully');
 
-    // Populate author and editor information
-    const updatedArticle = await Article.findById(article._id)
-      .populate('author', 'username')
-      .populate('versions.editor', 'username');
-
-    return NextResponse.json(updatedArticle);
-  } catch (error) {
+    return NextResponse.json(article);
+  } catch (error: any) {
     console.error('Error updating article:', error);
     return NextResponse.json(
-      { error: 'Failed to update article' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }

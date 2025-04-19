@@ -16,7 +16,7 @@ interface ArticleFormProps {
 
 export default function ArticleForm({ initialData, articleId }: ArticleFormProps) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [title, setTitle] = useState(initialData?.title || '');
   const [content, setContent] = useState(initialData?.content || '');
   const [tags, setTags] = useState(initialData?.tags?.join(', ') || '');
@@ -24,48 +24,58 @@ export default function ArticleForm({ initialData, articleId }: ArticleFormProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  console.log('ArticleForm session status:', status);
+  console.log('ArticleForm session data:', session);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
 
     try {
-      console.log('Submitting form...');
+      console.log('Starting form submission...');
+      console.log('Article ID:', articleId);
+      console.log('Form data:', { title, content, tags, changeDescription });
+      console.log('Current session:', session);
+
+      if (!session?.user) {
+        throw new Error('No valid session found. Please log in again.');
+      }
+
       const payload = {
         title,
         content,
         tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
         changeDescription: changeDescription || 'Updated article content',
-        author: session?.user?.id,
       };
-      console.log('Payload:', payload);
+      console.log('Prepared payload:', payload);
 
-      const response = await fetch(
-        articleId 
-          ? `/api/articles/${articleId}`
-          : '/api/articles',
-        {
-          method: articleId ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          credentials: 'include',
-        }
-      );
+      const url = articleId ? `/api/articles/${articleId}` : '/api/articles';
+      console.log('Request URL:', url);
+
+      const response = await fetch(url, {
+        method: articleId ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      });
 
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Response data:', data);
 
       if (!response.ok) {
+        console.error('Server returned error:', data);
         throw new Error(data.error || 'Failed to save article');
       }
 
+      console.log('Form submitted successfully, redirecting...');
       router.push(`/articles/${data._id}`);
       router.refresh();
     } catch (err) {
-      console.error('Error submitting form:', err);
+      console.error('Error in handleSubmit:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);
