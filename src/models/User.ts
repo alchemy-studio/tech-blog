@@ -1,7 +1,7 @@
-import mongoose, { Document } from 'mongoose';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-export interface IUser extends Document {
+export interface IUser extends mongoose.Document {
   username: string;
   email: string;
   password: string;
@@ -15,24 +15,42 @@ const userSchema = new mongoose.Schema<IUser>(
   {
     username: {
       type: String,
-      required: [true, '用户名是必需的'],
+      required: [true, '请提供用户名'],
       unique: true,
       trim: true,
       minlength: [3, '用户名至少需要3个字符'],
-      maxlength: [20, '用户名不能超过20个字符']
+      validate: {
+        validator: async function(username: string) {
+          if (this.isNew || this.isModified('username')) {
+            const existingUser = await mongoose.models.User.findOne({ username });
+            return !existingUser;
+          }
+          return true;
+        },
+        message: '该用户名已被使用'
+      }
     },
     email: {
       type: String,
-      required: [true, '邮箱是必需的'],
+      required: [true, '请提供邮箱地址'],
       unique: true,
       trim: true,
       lowercase: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, '请输入有效的邮箱地址']
+      validate: {
+        validator: async function(email: string) {
+          if (this.isNew || this.isModified('email')) {
+            const existingUser = await mongoose.models.User.findOne({ email });
+            return !existingUser;
+          }
+          return true;
+        },
+        message: '该邮箱已被注册'
+      }
     },
     password: {
       type: String,
-      required: [true, '密码是必需的'],
-      minlength: [6, '密码至少需要6个字符']
+      required: [true, '请提供密码'],
+      minlength: [6, '密码至少需要6个字符'],
     },
     role: {
       type: String,
@@ -45,25 +63,41 @@ const userSchema = new mongoose.Schema<IUser>(
   }
 );
 
-// 创建索引
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+// 创建索引以提高查询性能
+userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true });
 
 // 密码加密中间件
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error: any) {
+    next(error);
+  }
 });
 
 // 密码比对方法
 userSchema.methods.comparePassword = async function (candidatePassword: string) {
-  return bcrypt.compare(candidatePassword, this.password);
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    return false;
+  }
 };
 
-const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+// 处理重复键错误
+userSchema.post('save', function(error: any, doc: any, next: any) {
+  if (error.name === 'MongoServerError' && error.code === 11000) {
+    const field = Object.keys(error.keyPattern)[0];
+    next(new Error(`${field === 'username' ? '用户名' : '邮箱'}已被使用`));
+  } else {
+    next(error);
+  }
+});
 
-export default User; 
+export default mongoose.models.User || mongoose.model<IUser>('User', userSchema); 
