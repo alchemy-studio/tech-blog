@@ -16,7 +16,6 @@ const userSchema = new mongoose.Schema<IUser>(
     username: {
       type: String,
       required: [true, '请提供用户名'],
-      unique: true,
       trim: true,
       minlength: [3, '用户名至少需要3个字符'],
       validate: {
@@ -33,7 +32,6 @@ const userSchema = new mongoose.Schema<IUser>(
     email: {
       type: String,
       required: [true, '请提供邮箱地址'],
-      unique: true,
       trim: true,
       lowercase: true,
       validate: {
