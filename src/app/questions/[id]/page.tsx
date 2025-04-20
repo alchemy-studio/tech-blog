@@ -148,6 +148,10 @@ export default function QuestionPage({ params }: PageProps) {
     }
   };
 
+  const parseMarkdown = (content: string) => {
+    return DOMPurify.sanitize(marked.parse(content));
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -187,7 +191,7 @@ export default function QuestionPage({ params }: PageProps) {
               <div className="prose max-w-none mb-6">
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(marked.parse(question.content))
+                    __html: parseMarkdown(question.content)
                   }}
                 />
               </div>
@@ -214,7 +218,7 @@ export default function QuestionPage({ params }: PageProps) {
                         <div className="prose max-w-none">
                           <div
                             dangerouslySetInnerHTML={{
-                              __html: DOMPurify.sanitize(marked.parse(answer.content))
+                              __html: parseMarkdown(answer.content)
                             }}
                           />
                         </div>
