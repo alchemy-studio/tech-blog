@@ -12,6 +12,8 @@ import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import QuestionActions from '@/components/QuestionActions';
+import VoteButton from '@/components/VoteButton';
+import { toast } from 'react-hot-toast';
 
 interface Answer {
   _id: string;
@@ -20,6 +22,7 @@ interface Answer {
     username: string;
   };
   votes: number;
+  voters: string[];
   isAccepted: boolean;
   createdAt: string;
 }
@@ -34,6 +37,7 @@ interface Question {
   tags: string[];
   answers: Answer[];
   votes: number;
+  voters: string[];
   views: number;
   createdAt: string;
 }
@@ -148,8 +152,51 @@ export default function QuestionPage({ params }: PageProps) {
     }
   };
 
+  const handleVoteQuestion = async () => {
+    try {
+      const res = await fetch(`/api/questions/${resolvedParams.id}/vote`, {
+        method: 'POST',
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success(data.message || '投票成功');
+        await fetchQuestion();
+      } else {
+        toast.error(data.error || '投票失败');
+      }
+    } catch (error) {
+      console.error('投票时出错:', error);
+      toast.error('投票失败，请稍后重试');
+    }
+  };
+
+  const handleVoteAnswer = async (answerId: string) => {
+    try {
+      const res = await fetch(
+        `/api/questions/${resolvedParams.id}/answers/${answerId}/vote`,
+        {
+          method: 'POST',
+        }
+      );
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success(data.message || '投票成功');
+        await fetchQuestion();
+      } else {
+        toast.error(data.error || '投票失败');
+      }
+    } catch (error) {
+      console.error('投票时出错:', error);
+      toast.error('投票失败，请稍后重试');
+    }
+  };
+
   const parseMarkdown = (content: string) => {
-    return DOMPurify.sanitize(marked.parse(content));
+    return DOMPurify.sanitize(marked.parse(content, { async: false }));
   };
 
   if (loading) {
@@ -184,9 +231,16 @@ export default function QuestionPage({ params }: PageProps) {
                 <h1 className="text-3xl font-bold text-gray-900">
                   {question.title}
                 </h1>
-                {session?.user?.role === 'editor' && (
-                  <QuestionActions questionId={question._id} />
-                )}
+                <div className="flex items-center gap-4">
+                  <VoteButton
+                    votes={question.votes}
+                    hasVoted={question.voters?.includes(session?.user?.id || '')}
+                    onVote={handleVoteQuestion}
+                  />
+                  {session?.user?.role === 'editor' && (
+                    <QuestionActions questionId={question._id} />
+                  )}
+                </div>
               </div>
               <div className="prose max-w-none mb-6">
                 <div
@@ -222,13 +276,20 @@ export default function QuestionPage({ params }: PageProps) {
                             }}
                           />
                         </div>
-                        {session?.user?.role === 'editor' && (
-                          <QuestionActions
-                            questionId={question._id}
-                            answerId={answer._id}
-                            onDeleteAnswer={handleDeleteAnswer}
+                        <div className="flex items-center gap-4">
+                          <VoteButton
+                            votes={answer.votes}
+                            hasVoted={answer.voters?.includes(session?.user?.id || '')}
+                            onVote={() => handleVoteAnswer(answer._id)}
                           />
-                        )}
+                          {session?.user?.role === 'editor' && (
+                            <QuestionActions
+                              questionId={question._id}
+                              answerId={answer._id}
+                              onDeleteAnswer={handleDeleteAnswer}
+                            />
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <span>回答者：{answer.author.username}</span>

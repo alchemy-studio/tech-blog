@@ -5,6 +5,7 @@ interface IAnswer {
   content: string;
   author: mongoose.Types.ObjectId | IUser;
   votes: number;
+  voters: mongoose.Types.ObjectId[];
   isAccepted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -17,6 +18,7 @@ export interface IQuestion extends mongoose.Document {
   tags: string[];
   answers: IAnswer[];
   votes: number;
+  voters: mongoose.Types.ObjectId[];
   views: number;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +39,10 @@ const answerSchema = new mongoose.Schema<IAnswer>(
       type: Number,
       default: 0,
     },
+    voters: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
     isAccepted: {
       type: Boolean,
       default: false,
@@ -73,6 +79,10 @@ const questionSchema = new mongoose.Schema<IQuestion>(
       type: Number,
       default: 0,
     },
+    voters: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
     views: {
       type: Number,
       default: 0,
