@@ -8,9 +8,10 @@ import { zhCN } from 'date-fns/locale';
 import Link from 'next/link';
 import { use } from 'react';
 import CustomMDEditor from '@/components/CustomMDEditor';
-import { ChatBubbleLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import QuestionActions from '@/components/QuestionActions';
 
 interface Answer {
   _id: string;
@@ -180,13 +181,7 @@ export default function QuestionPage({ params }: PageProps) {
                   {question.title}
                 </h1>
                 {session?.user?.role === 'editor' && (
-                  <button
-                    onClick={handleDeleteQuestion}
-                    className="text-red-600 hover:text-red-800"
-                    title="删除问题"
-                  >
-                    <TrashIcon className="h-6 w-6" />
-                  </button>
+                  <QuestionActions questionId={question._id} />
                 )}
               </div>
               <div className="prose max-w-none mb-6">
@@ -224,13 +219,11 @@ export default function QuestionPage({ params }: PageProps) {
                           />
                         </div>
                         {session?.user?.role === 'editor' && (
-                          <button
-                            onClick={() => handleDeleteAnswer(answer._id)}
-                            className="text-red-600 hover:text-red-800 ml-4"
-                            title="删除回答"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
+                          <QuestionActions
+                            questionId={question._id}
+                            answerId={answer._id}
+                            onDeleteAnswer={handleDeleteAnswer}
+                          />
                         )}
                       </div>
                       <div className="flex items-center justify-between text-sm text-gray-500">

@@ -10,7 +10,7 @@ import { JSDOM } from 'jsdom';
 import Link from 'next/link';
 import VersionHistory from '@/components/VersionHistory';
 import { Types } from 'mongoose';
-import DeleteButton from '@/components/DeleteButton';
+import ArticleActions from '@/components/ArticleActions';
 
 interface Props {
   params: {
@@ -103,27 +103,7 @@ export default async function ArticlePage({ params }: Props) {
           <div className="flex justify-between items-start mb-4">
             <h1>{article.title}</h1>
             {session?.user?.role === 'editor' && (
-              <DeleteButton
-                onDelete={async () => {
-                  if (!confirm('确定要删除这篇文章吗？此操作不可恢复。')) {
-                    return;
-                  }
-                  try {
-                    const res = await fetch(`/api/articles/${article._id}`, {
-                      method: 'DELETE',
-                    });
-                    if (res.ok) {
-                      window.location.href = '/articles';
-                    } else {
-                      const data = await res.json();
-                      alert(data.error || '删除文章失败');
-                    }
-                  } catch (error) {
-                    console.error('删除文章时出错:', error);
-                    alert('删除文章失败');
-                  }
-                }}
-              />
+              <ArticleActions articleId={article._id.toString()} />
             )}
           </div>
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-8">
