@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import Logo from './Logo';
 
 const navigation = [
@@ -46,11 +46,15 @@ export default function Navbar() {
             </Link>
           ))}
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-x-6">
           {status === 'loading' ? (
             <div className="text-gray-500">加载中...</div>
           ) : session ? (
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-gray-700">
+                <UserCircleIcon className="h-5 w-5" />
+                <span className="text-sm font-medium">{session.user.username}</span>
+              </div>
               <Link
                 href="/dashboard"
                 className="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600"
@@ -93,6 +97,12 @@ export default function Navbar() {
           <div className="mt-6 flow-root">
             <div className="-my-6 divide-y divide-gray-500/10">
               <div className="space-y-2 py-6">
+                {session && (
+                  <div className="flex items-center gap-2 px-3 py-2 text-gray-700">
+                    <UserCircleIcon className="h-5 w-5" />
+                    <span className="text-sm font-medium">{session.user.username}</span>
+                  </div>
+                )}
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
