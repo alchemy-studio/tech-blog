@@ -51,15 +51,12 @@ export default function Navbar() {
             <div className="text-gray-500">加载中...</div>
           ) : session ? (
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-gray-700">
-                <UserCircleIcon className="h-5 w-5" />
-                <span className="text-sm font-medium">{session.user.username}</span>
-              </div>
               <Link
                 href="/dashboard"
-                className="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600"
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
               >
-                仪表盘
+                <UserCircleIcon className="h-5 w-5" />
+                <span className="text-sm font-medium">{session.user.username}</span>
               </Link>
               <button
                 onClick={() => signOut()}
@@ -98,10 +95,14 @@ export default function Navbar() {
             <div className="-my-6 divide-y divide-gray-500/10">
               <div className="space-y-2 py-6">
                 {session && (
-                  <div className="flex items-center gap-2 px-3 py-2 text-gray-700">
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
                     <UserCircleIcon className="h-5 w-5" />
                     <span className="text-sm font-medium">{session.user.username}</span>
-                  </div>
+                  </Link>
                 )}
                 {navigation.map((item) => (
                   <Link
@@ -118,24 +119,15 @@ export default function Navbar() {
                 {status === 'loading' ? (
                   <div className="text-gray-500">加载中...</div>
                 ) : session ? (
-                  <>
-                    <Link
-                      href="/dashboard"
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      仪表盘
-                    </Link>
-                    <button
-                      onClick={() => {
-                        signOut();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                    >
-                      退出
-                    </button>
-                  </>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                  >
+                    退出
+                  </button>
                 ) : (
                   <Link
                     href="/login"
