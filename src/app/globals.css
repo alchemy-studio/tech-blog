@@ -33,6 +33,24 @@
   @apply bg-white;
 }
 
+/* 视频 iframe 样式 */
+.w-md-editor-preview iframe,
+.w-md-editor-text iframe,
+.prose iframe {
+  @apply w-full h-[500px] my-4 rounded-lg shadow-md;
+  border: none !important;
+}
+
+/* 文章和问答内容中的视频样式 */
+.prose {
+  @apply max-w-none;
+}
+
+.prose iframe {
+  @apply w-full h-[500px] my-4 rounded-lg shadow-md;
+  border: none !important;
+}
+
 /* 其他全局样式 */
 :root {
   --foreground-rgb: 0, 0, 0;

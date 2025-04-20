@@ -62,7 +62,10 @@ export default async function ArticlePage({ params }: Props) {
     const purify = DOMPurify(window);
     const markdownContent = article.content as string;
     const htmlContent = marked.parse(markdownContent) as string;
-    const cleanHtml = purify.sanitize(htmlContent);
+    const cleanHtml = purify.sanitize(htmlContent, {
+      ADD_TAGS: ['iframe'],
+      ADD_ATTR: ['allowfullscreen', 'frameborder', 'scrolling', 'src', 'style']
+    });
 
     // Prepare versions data for client component
     const versions = article.versions.map((version: {

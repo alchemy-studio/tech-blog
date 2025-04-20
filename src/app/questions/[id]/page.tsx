@@ -7,7 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Link from 'next/link';
 import { use } from 'react';
-import MDEditor from '@uiw/react-md-editor';
+import CustomMDEditor from '@/components/CustomMDEditor';
 import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 
 interface Answer {
@@ -134,7 +134,12 @@ export default function QuestionPage({ params }: PageProps) {
               </h1>
               <div className="prose max-w-none mb-6">
                 <div data-color-mode="light">
-                  <MDEditor.Markdown source={question.content} />
+                  <CustomMDEditor
+                    value={question.content}
+                    onChange={() => {}}
+                    height={0}
+                    preview="preview"
+                  />
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm text-gray-500">
@@ -158,7 +163,12 @@ export default function QuestionPage({ params }: PageProps) {
                     <div key={answer._id} className="border-b border-gray-200 pb-6">
                       <div className="prose max-w-none mb-4">
                         <div data-color-mode="light">
-                          <MDEditor.Markdown source={answer.content} />
+                          <CustomMDEditor
+                            value={answer.content}
+                            onChange={() => {}}
+                            height={0}
+                            preview="preview"
+                          />
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-sm text-gray-500">
@@ -181,12 +191,11 @@ export default function QuestionPage({ params }: PageProps) {
                 <h3 className="text-xl font-bold text-gray-900 mb-4">发表回答</h3>
                 <form onSubmit={handleSubmit}>
                   <div className="mb-4">
-                    <div data-color-mode="light">
-                      <MDEditor
+                    <div className="mt-1">
+                      <CustomMDEditor
                         value={answer}
                         onChange={(value) => setAnswer(value || '')}
-                        height={300}
-                        preview="live"
+                        height={200}
                       />
                     </div>
                   </div>

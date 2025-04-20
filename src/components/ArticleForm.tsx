@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import MDEditor from '@uiw/react-md-editor';
+import CustomMDEditor from './CustomMDEditor';
 
 const DEFAULT_CHANGE_DESCRIPTION = 'Updated article content';
 
@@ -111,10 +111,10 @@ export default function ArticleForm({ initialData, articleId }: ArticleFormProps
           内容
         </label>
         <div className="mt-1">
-          <MDEditor
+          <CustomMDEditor
             value={content}
             onChange={(value) => setContent(value || '')}
-            height={500}
+            height={400}
           />
         </div>
       </div>
