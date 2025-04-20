@@ -8,7 +8,7 @@ import { zhCN } from 'date-fns/locale';
 import Link from 'next/link';
 import { use } from 'react';
 import CustomMDEditor from '@/components/CustomMDEditor';
-import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -103,6 +103,50 @@ export default function QuestionPage({ params }: PageProps) {
     }
   };
 
+  const handleDeleteQuestion = async () => {
+    if (!confirm('确定要删除这个问题吗？此操作不可恢复。')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/questions/${resolvedParams.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        router.push('/questions');
+      } else {
+        const data = await res.json();
+        alert(data.error || '删除问题失败');
+      }
+    } catch (error) {
+      console.error('删除问题时出错:', error);
+      alert('删除问题失败');
+    }
+  };
+
+  const handleDeleteAnswer = async (answerId: string) => {
+    if (!confirm('确定要删除这个回答吗？此操作不可恢复。')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/questions/${resolvedParams.id}/answers/${answerId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        await fetchQuestion();
+      } else {
+        const data = await res.json();
+        alert(data.error || '删除回答失败');
+      }
+    } catch (error) {
+      console.error('删除回答时出错:', error);
+      alert('删除回答失败');
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -131,9 +175,20 @@ export default function QuestionPage({ params }: PageProps) {
         {question && (
           <>
             <div className="bg-white shadow rounded-lg p-6 mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                {question.title}
-              </h1>
+              <div className="flex justify-between items-start mb-4">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {question.title}
+                </h1>
+                {session?.user?.role === 'editor' && (
+                  <button
+                    onClick={handleDeleteQuestion}
+                    className="text-red-600 hover:text-red-800"
+                    title="删除问题"
+                  >
+                    <TrashIcon className="h-6 w-6" />
+                  </button>
+                )}
+              </div>
               <div className="prose max-w-none mb-6">
                 <div
                   dangerouslySetInnerHTML={{
@@ -160,12 +215,23 @@ export default function QuestionPage({ params }: PageProps) {
                 <div className="space-y-6">
                   {question.answers.map((answer) => (
                     <div key={answer._id} className="border-b border-gray-200 pb-6">
-                      <div className="prose max-w-none mb-4">
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(marked.parse(answer.content))
-                          }}
-                        />
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="prose max-w-none">
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(marked.parse(answer.content))
+                            }}
+                          />
+                        </div>
+                        {session?.user?.role === 'editor' && (
+                          <button
+                            onClick={() => handleDeleteAnswer(answer._id)}
+                            className="text-red-600 hover:text-red-800 ml-4"
+                            title="删除回答"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        )}
                       </div>
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <span>回答者：{answer.author.username}</span>

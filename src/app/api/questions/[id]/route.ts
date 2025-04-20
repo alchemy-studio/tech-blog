@@ -104,7 +104,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user || session.user.role !== 'editor') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -112,11 +112,8 @@ export async function DELETE(
     }
 
     await connectDB();
-    const _params = await params;
-    const questionId = await _params.id;
 
-    const question = await Question.findById(questionId);
-
+    const question = await Question.findById(params.id);
     if (!question) {
       return NextResponse.json(
         { error: 'Question not found' },
@@ -124,25 +121,13 @@ export async function DELETE(
       );
     }
 
-    // Check if user is author or editor
-    if (
-      question.author.toString() !== session.user.id &&
-      session.user.role !== 'editor'
-    ) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     await question.deleteOne();
 
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting question:', error);
     return NextResponse.json(
-      { message: 'Question deleted successfully' }
-    );
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

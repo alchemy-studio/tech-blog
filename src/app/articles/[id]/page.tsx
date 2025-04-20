@@ -10,6 +10,7 @@ import { JSDOM } from 'jsdom';
 import Link from 'next/link';
 import VersionHistory from '@/components/VersionHistory';
 import { Types } from 'mongoose';
+import DeleteButton from '@/components/DeleteButton';
 
 interface Props {
   params: {
@@ -99,7 +100,32 @@ export default async function ArticlePage({ params }: Props) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <article className="prose prose-lg max-w-none">
-          <h1>{article.title}</h1>
+          <div className="flex justify-between items-start mb-4">
+            <h1>{article.title}</h1>
+            {session?.user?.role === 'editor' && (
+              <DeleteButton
+                onDelete={async () => {
+                  if (!confirm('确定要删除这篇文章吗？此操作不可恢复。')) {
+                    return;
+                  }
+                  try {
+                    const res = await fetch(`/api/articles/${article._id}`, {
+                      method: 'DELETE',
+                    });
+                    if (res.ok) {
+                      window.location.href = '/articles';
+                    } else {
+                      const data = await res.json();
+                      alert(data.error || '删除文章失败');
+                    }
+                  } catch (error) {
+                    console.error('删除文章时出错:', error);
+                    alert('删除文章失败');
+                  }
+                }}
+              />
+            )}
+          </div>
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-8">
             <span>作者: {article.author?.username || '未知作者'}</span>
             <span>发布于: {format(new Date(article.createdAt), 'yyyy-MM-dd HH:mm')}</span>
