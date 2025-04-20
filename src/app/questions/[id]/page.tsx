@@ -9,6 +9,8 @@ import Link from 'next/link';
 import { use } from 'react';
 import CustomMDEditor from '@/components/CustomMDEditor';
 import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface Answer {
   _id: string;
@@ -133,14 +135,11 @@ export default function QuestionPage({ params }: PageProps) {
                 {question.title}
               </h1>
               <div className="prose max-w-none mb-6">
-                <div data-color-mode="light">
-                  <CustomMDEditor
-                    value={question.content}
-                    onChange={() => {}}
-                    height={0}
-                    preview="preview"
-                  />
-                </div>
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(marked.parse(question.content))
+                  }}
+                />
               </div>
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span>提问者：{question.author.username}</span>
@@ -162,14 +161,11 @@ export default function QuestionPage({ params }: PageProps) {
                   {question.answers.map((answer) => (
                     <div key={answer._id} className="border-b border-gray-200 pb-6">
                       <div className="prose max-w-none mb-4">
-                        <div data-color-mode="light">
-                          <CustomMDEditor
-                            value={answer.content}
-                            onChange={() => {}}
-                            height={0}
-                            preview="preview"
-                          />
-                        </div>
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(marked.parse(answer.content))
+                          }}
+                        />
                       </div>
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <span>回答者：{answer.author.username}</span>
