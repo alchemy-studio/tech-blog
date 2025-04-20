@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import Logo from './Logo';
 
 const navigation = [
   { name: '首页', href: '/' },
@@ -13,16 +14,16 @@ const navigation = [
 ];
 
 export default function Navbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <header className="bg-white">
       <nav className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
         <div className="flex lg:flex-1">
-          <Link href="/" className="-m-1.5 p-1.5">
-            <span className="text-2xl font-bold">Tech Blog</span>
-          </Link>
+          <div className="flex-shrink-0 flex items-center">
+            <Logo />
+          </div>
         </div>
         <div className="flex lg:hidden">
           <button
@@ -46,7 +47,9 @@ export default function Navbar() {
           ))}
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          {session ? (
+          {status === 'loading' ? (
+            <div className="text-gray-500">加载中...</div>
+          ) : session ? (
             <div className="flex items-center gap-4">
               <Link
                 href="/dashboard"
@@ -75,9 +78,9 @@ export default function Navbar() {
         <div className="fixed inset-0 z-10" />
         <Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
           <div className="flex items-center justify-between">
-            <Link href="/" className="-m-1.5 p-1.5">
-              <span className="text-2xl font-bold">Tech Blog</span>
-            </Link>
+            <div className="flex-shrink-0 flex items-center">
+              <Logo />
+            </div>
             <button
               type="button"
               className="-m-2.5 rounded-md p-2.5 text-gray-700"
@@ -102,7 +105,9 @@ export default function Navbar() {
                 ))}
               </div>
               <div className="py-6">
-                {session ? (
+                {status === 'loading' ? (
+                  <div className="text-gray-500">加载中...</div>
+                ) : session ? (
                   <>
                     <Link
                       href="/dashboard"
