@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 import Link from 'next/link';
 import { use } from 'react';
+import MDEditor from '@uiw/react-md-editor';
+import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 
 interface Answer {
   _id: string;
@@ -38,58 +42,66 @@ interface PageProps {
 export default function QuestionPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { data: session } = useSession();
+  const router = useRouter();
   const [question, setQuestion] = useState<Question | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [newAnswer, setNewAnswer] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [answer, setAnswer] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchQuestion = async () => {
-      try {
-        const res = await fetch(`/api/questions/${resolvedParams.id}`);
-        if (!res.ok) {
-          throw new Error('Question not found');
-        }
+  const fetchQuestion = async () => {
+    try {
+      const res = await fetch(`/api/questions/${resolvedParams.id}`);
+      if (res.ok) {
         const data = await res.json();
         setQuestion(data);
-      } catch (error) {
-        setError('Failed to load question');
-        console.error('Error fetching question:', error);
-      } finally {
-        setIsLoading(false);
+      } else {
+        console.error('获取问题失败');
       }
-    };
+    } catch (error) {
+      console.error('获取问题时出错:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchQuestion();
   }, [resolvedParams.id]);
 
-  const handleSubmitAnswer = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAnswer.trim()) return;
+    if (!session?.user) {
+      router.push('/login');
+      return;
+    }
 
+    setSubmitting(true);
     try {
       const res = await fetch(`/api/questions/${resolvedParams.id}/answers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content: newAnswer }),
+        body: JSON.stringify({ content: answer }),
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to post answer');
+      if (res.ok) {
+        setAnswer('');
+        await fetchQuestion();
+      } else {
+        const data = await res.json();
+        alert(data.error || '提交回答失败');
       }
-
-      const updatedQuestion = await res.json();
-      setQuestion(updatedQuestion);
-      setNewAnswer('');
     } catch (error) {
-      setError('Failed to post answer');
-      console.error('Error posting answer:', error);
+      console.error('提交回答时出错:', error);
+      alert('提交回答失败');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-4">
@@ -112,103 +124,85 @@ export default function QuestionPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <article className="bg-white rounded-lg shadow p-6 mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">{question.title}</h1>
-        <div className="flex items-center text-sm text-gray-500 mb-4">
-          <span>提问者: {question.author?.username || 'Unknown Author'}</span>
-          <span className="mx-2">&bull;</span>
-          <time dateTime={question.createdAt}>
-            {format(new Date(question.createdAt), 'yyyy-MM-dd')}
-          </time>
-        </div>
-        <div className="prose max-w-none mb-6">
-          {question.content}
-        </div>
-        {question.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {question.tags.map((tag) => (
-              <Link
-                key={tag}
-                href={`/questions?tag=${encodeURIComponent(tag)}`}
-                className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-800 hover:bg-gray-200"
-              >
-                {tag}
-              </Link>
-            ))}
-          </div>
-        )}
-      </article>
-
-      <section className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">回答 ({question.answers.length})</h2>
-        {question.answers.length === 0 ? (
-          <p className="text-gray-500">还没有回答，快来抢沙发吧！</p>
-        ) : (
-          <div className="space-y-6">
-            {question.answers.map((answer) => (
-              <div
-                key={answer._id}
-                className={`border rounded-lg p-4 ${
-                  answer.isAccepted ? 'border-green-500 bg-green-50' : 'border-gray-200'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <span>{answer.author?.username || 'Unknown Author'}</span>
-                    <span className="mx-2">&bull;</span>
-                    <time dateTime={answer.createdAt}>
-                      {format(new Date(answer.createdAt), 'yyyy-MM-dd')}
-                    </time>
-                  </div>
-                  {answer.isAccepted && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      已采纳
-                    </span>
-                  )}
-                </div>
-                <div className="prose max-w-none">
-                  {answer.content}
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {question && (
+          <>
+            <div className="bg-white shadow rounded-lg p-6 mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                {question.title}
+              </h1>
+              <div className="prose max-w-none mb-6">
+                <div data-color-mode="light">
+                  <MDEditor.Markdown source={question.content} />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {session ? (
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">发表回答</h2>
-          <form onSubmit={handleSubmitAnswer}>
-            <div className="mb-4">
-              <textarea
-                value={newAnswer}
-                onChange={(e) => setNewAnswer(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={6}
-                placeholder="写下你的回答..."
-                required
-              />
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>提问者：{question.author.username}</span>
+                <span>
+                  {formatDistanceToNow(new Date(question.createdAt), {
+                    addSuffix: true,
+                    locale: zhCN,
+                  })}
+                </span>
+              </div>
             </div>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              提交回答
-            </button>
-          </form>
-        </section>
-      ) : (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-600 mb-4">登录后才能回答问题</p>
-          <Link
-            href="/login"
-            className="text-blue-600 hover:text-blue-800 font-medium"
-          >
-            去登录 →
-          </Link>
-        </div>
-      )}
+
+            <div className="bg-white shadow rounded-lg p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">回答</h2>
+              {question.answers.length === 0 ? (
+                <p className="text-gray-500">暂无回答</p>
+              ) : (
+                <div className="space-y-6">
+                  {question.answers.map((answer) => (
+                    <div key={answer._id} className="border-b border-gray-200 pb-6">
+                      <div className="prose max-w-none mb-4">
+                        <div data-color-mode="light">
+                          <MDEditor.Markdown source={answer.content} />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <span>回答者：{answer.author.username}</span>
+                        <span>
+                          {formatDistanceToNow(new Date(answer.createdAt), {
+                            addSuffix: true,
+                            locale: zhCN,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {session?.user && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">发表回答</h3>
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <div data-color-mode="light">
+                      <MDEditor
+                        value={answer}
+                        onChange={(value) => setAnswer(value || '')}
+                        height={300}
+                        preview="live"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submitting || !answer.trim()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? '提交中...' : '提交回答'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 } 

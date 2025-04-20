@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* MDEditor 样式覆盖 */
+.w-md-editor {
+  @apply bg-white;
+}
+
+.w-md-editor-toolbar {
+  @apply bg-gray-50 border-gray-200;
+}
+
+.w-md-editor-toolbar li button {
+  @apply text-gray-700 hover:text-gray-900;
+}
+
+.w-md-editor-content {
+  @apply bg-white;
+}
+
+.w-md-editor-preview {
+  @apply bg-white;
+}
+
+.w-md-editor-text {
+  @apply bg-white;
+}
+
+/* 其他全局样式 */
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-rgb: 245, 245, 245;
