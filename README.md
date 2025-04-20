@@ -94,13 +94,28 @@ docker ps
 
 ### 4. 环境变量配置
 
-创建 `.env` 文件：
+项目提供了 `.env.example` 文件作为环境变量配置模板。你需要创建 `.env` 文件并设置以下环境变量：
 
 ```env
+# 数据库连接
 MONGODB_URI=mongodb://localhost:27017/tech_blog
-NEXTAUTH_SECRET=your-secret-key-here
+
+# NextAuth.js 配置
+NEXTAUTH_SECRET=your-secret-key-here  # 使用 openssl rand -base64 32 生成一个安全的密钥
 NEXTAUTH_URL=http://localhost:3000
+
+# API 配置
+NEXT_PUBLIC_API_URL=http://localhost:3000
+
+# 环境模式
+NODE_ENV=development
 ```
+
+重要说明：
+- 复制 `.env.example` 到 `.env` 文件：`cp .env.example .env`
+- 修改 `.env` 文件中的值，特别是 `NEXTAUTH_SECRET`
+- `.env` 文件包含敏感信息，不要提交到版本控制系统中
+- 确保所有环境变量都已正确设置，否则应用可能无法正常运行
 
 ### 5. 初始化示例数据
 
